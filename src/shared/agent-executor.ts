@@ -53,7 +53,7 @@ const DEFAULT_HTTP_TIMEOUT_MS = 60_000
 // MiniMax exposes both an OpenAI-compatible and an Anthropic-compatible API.
 // The active region is selected via the MINIMAX_REGION env var
 // ("cn_zh"/"cn" selects the China endpoints; anything else uses global).
-const MINIMAX_DEFAULT_MODEL = 'MiniMax-M3'
+const MINIMAX_DEFAULT_MODEL = 'MiniMax-M3.1-Flash'
 
 interface MinimaxEndpoints {
   openai: string
@@ -514,7 +514,10 @@ async function executeOpenAiWithTools(options: AgentExecutionOptions): Promise<A
       break
     }
 
-    messages.push({ role: 'assistant', content: msg.content ?? null, tool_calls: toolCalls })
+    // MiniMax requires the assistant's reasoning fields on subsequent tool turns.
+    messages.push(prefix === 'minimax'
+      ? { ...msg, role: 'assistant', content: msg.content ?? null, tool_calls: toolCalls }
+      : { role: 'assistant', content: msg.content ?? null, tool_calls: toolCalls })
 
     for (const tc of toolCalls) {
       const name = tc.function.name

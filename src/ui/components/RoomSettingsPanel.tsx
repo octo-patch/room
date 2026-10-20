@@ -24,7 +24,7 @@ interface QueenStatus {
   running: boolean
   model: string | null
   auth: {
-    provider: 'claude_subscription' | 'codex_subscription' | 'openai_api' | 'anthropic_api' | 'gemini_api' | 'ollama_local'
+    provider: 'claude_subscription' | 'codex_subscription' | 'openai_api' | 'anthropic_api' | 'gemini_api' | 'minimax_api' | 'ollama_local'
     mode: 'subscription' | 'api' | 'local'
     credentialName: string | null
     envVar: string | null
@@ -753,6 +753,8 @@ export function RoomSettingsPanel({ roomId }: RoomSettingsPanelProps): React.JSX
       setQueenAuth(prev => ({ ...prev, [room.id]: { provider: 'anthropic_api', mode: 'api', credentialName: 'anthropic_api_key', envVar: 'ANTHROPIC_API_KEY', hasCredential: false, hasEnvKey: false, ready: false, maskedKey: null } }))
     } else if (model.startsWith('gemini:')) {
       setQueenAuth(prev => ({ ...prev, [room.id]: { provider: 'gemini_api', mode: 'api', credentialName: 'gemini_api_key', envVar: 'GEMINI_API_KEY', hasCredential: false, hasEnvKey: false, ready: false, maskedKey: null } }))
+    } else if (model.startsWith('minimax:') || model.startsWith('minimax-anthropic:')) {
+      setQueenAuth(prev => ({ ...prev, [room.id]: { provider: 'minimax_api', mode: 'api', credentialName: 'minimax_api_key', envVar: 'MINIMAX_API_KEY', hasCredential: false, hasEnvKey: false, ready: false, maskedKey: null } }))
     } else {
       setQueenAuth(prev => ({ ...prev, [room.id]: { provider: 'claude_subscription', mode: 'subscription', credentialName: null, envVar: null, hasCredential: false, hasEnvKey: false, ready: true, maskedKey: null } }))
     }
@@ -839,7 +841,7 @@ export function RoomSettingsPanel({ roomId }: RoomSettingsPanelProps): React.JSX
     if (!apiKeyPrompt) return
     const { roomId: targetRoomId, auth, mode } = apiKeyPrompt
     if (apiKeyBusyRoomId === targetRoomId) return
-    const providerName = auth.credentialName === 'openai_api_key' ? 'OpenAI' : auth.credentialName === 'gemini_api_key' ? 'Gemini' : 'Anthropic'
+    const providerName = auth.credentialName === 'openai_api_key' ? 'OpenAI' : auth.credentialName === 'gemini_api_key' ? 'Gemini' : auth.credentialName === 'minimax_api_key' ? 'MiniMax' : 'Anthropic'
     const shouldSave = mode === 'save'
     if (shouldSave) pendingModelUpdate.current = true
     setApiKeyBusyRoomId(targetRoomId)
@@ -1047,6 +1049,10 @@ export function RoomSettingsPanel({ roomId }: RoomSettingsPanelProps): React.JSX
     { value: 'anthropic:claude-opus-4-6', label: 'Opus (API)' },
     { value: 'gemini:gemini-2.5-flash', label: 'Gemini 2.5 Flash (API)' },
     { value: 'gemini:gemini-2.5-pro', label: 'Gemini 2.5 Pro (API)' },
+    { value: 'minimax:MiniMax-M3.1-Flash', label: 'MiniMax M3.1 Flash (API)' },
+    { value: 'minimax:MiniMax-M3', label: 'MiniMax M3 (API)' },
+    { value: 'minimax-anthropic:MiniMax-M3.1-Flash', label: 'MiniMax M3.1 Flash (Messages API)' },
+    { value: 'minimax-anthropic:MiniMax-M3', label: 'MiniMax M3 (Messages API)' },
   ]
   if (APP_MODE !== 'cloud') {
     queenModelOptions.push({ value: FREE_LOCAL_MODEL_ID, label: 'Free Local (Qwen3 Coder 30B)' })
@@ -1941,7 +1947,7 @@ export function RoomSettingsPanel({ roomId }: RoomSettingsPanelProps): React.JSX
 
       {apiKeyPrompt && (
         <PromptDialog
-          title={`Enter ${apiKeyPrompt.auth.credentialName === 'openai_api_key' ? 'OpenAI' : apiKeyPrompt.auth.credentialName === 'gemini_api_key' ? 'Gemini' : 'Anthropic'} API key ${apiKeyPrompt.mode === 'save' ? 'to save' : 'to test'}:`}
+          title={`Enter ${apiKeyPrompt.auth.credentialName === 'openai_api_key' ? 'OpenAI' : apiKeyPrompt.auth.credentialName === 'gemini_api_key' ? 'Gemini' : apiKeyPrompt.auth.credentialName === 'minimax_api_key' ? 'MiniMax' : 'Anthropic'} API key ${apiKeyPrompt.mode === 'save' ? 'to save' : 'to test'}:`}
           placeholder="sk-..."
           type="password"
           confirmLabel={apiKeyBusyRoomId === apiKeyPrompt.roomId ? 'Validating...' : apiKeyPrompt.mode === 'save' ? 'Validate & Save' : 'Validate'}
